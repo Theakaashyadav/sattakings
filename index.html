@@ -32,6 +32,25 @@
         font-family: Arial, Helvetica, sans-serif;
       }
 
+      .designer-watermark {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        max-width: calc(100vw - 20px);
+        padding: 6px 10px;
+        border: 1px solid rgba(31, 41, 51, 0.14);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        color: #1f2933;
+        font-size: 0.72rem;
+        font-weight: 800;
+        line-height: 1.2;
+        text-align: right;
+        box-shadow: 0 4px 14px rgba(31, 41, 51, 0.12);
+        pointer-events: none;
+      }
+
       main {
         width: min(760px, calc(100% - 18px));
         margin: 0 auto;
@@ -370,10 +389,19 @@
         .number-col {
           width: 48px;
         }
+
+        .designer-watermark {
+          top: 6px;
+          right: 6px;
+          padding: 5px 8px;
+          font-size: 0.64rem;
+        }
       }
     </style>
   </head>
   <body>
+    <div class="designer-watermark" aria-label="Designer By Theakaashyadav">Designer By Theakaashyadav</div>
+
     <main>
       <form id="reader-form">
         <button id="submit-button" type="submit">Refresh</button>
