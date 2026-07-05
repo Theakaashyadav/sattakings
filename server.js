@@ -112,6 +112,66 @@ function extractTables(cleanHtml, pageUrl) {
     .slice(0, 8);
 }
 
+function extractMetaContent(cleanHtml, names) {
+  const wanted = new Set(names.map((name) => name.toLowerCase()));
+
+  for (const match of cleanHtml.matchAll(/<meta\b[^>]*>/gi)) {
+    const tag = match[0];
+    const name = (getAttr(tag, "name") || getAttr(tag, "property")).toLowerCase();
+
+    if (wanted.has(name)) {
+      return getAttr(tag, "content");
+    }
+  }
+
+  return "";
+}
+
+function extractLooseResultTable(cleanHtml, pageUrl) {
+  const rows = [...cleanHtml.matchAll(/<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi)]
+    .map((rowMatch) => {
+      const cells = [...rowMatch[2].matchAll(/<(th|td)\b([^>]*)>([\s\S]*?)<\/(?:th|td)>/gi)]
+        .map((cellMatch) => ({
+          tag: cellMatch[1].toLowerCase(),
+          text: stripTags(cellMatch[3]),
+          className: getAttr(cellMatch[2], "class"),
+          colspan: Number(getAttr(cellMatch[2], "colspan")) || 1,
+          links: [...cellMatch[3].matchAll(/<a\b[^>]*href\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)[^>]*>([\s\S]*?)<\/a>/gi)]
+            .map((linkMatch) => ({
+              href: absolutize(pageUrl, getAttr(linkMatch[0], "href")),
+              text: stripTags(linkMatch[2]),
+            }))
+            .filter((link) => link.href),
+        }))
+        .filter((cell) => cell.text)
+        .slice(0, 12);
+
+      return {
+        className: getAttr(rowMatch[1], "class"),
+        id: getAttr(rowMatch[1], "id"),
+        cells,
+      };
+    })
+    .filter((row) => row.cells.length)
+    .slice(0, 180);
+
+  const hasResultRows = rows.some((row) => /game-result|board-title|board-head|board-section/i.test(row.className));
+  if (!hasResultRows) return [];
+
+  const title =
+    rows.find((row) => /board-title/i.test(row.className))?.cells[0]?.text ||
+    "Satta King Fast Results";
+
+  return [
+    {
+      title,
+      className: "quick-result-board",
+      rows,
+      rowCount: rows.length,
+    },
+  ];
+}
+
 function extractSections(cleanHtml) {
   return [...cleanHtml.matchAll(/<(header|nav|main|section|article|aside|footer|div)\b([^>]*)>([\s\S]*?)<\/\1>/gi)]
     .map((match) => {
@@ -143,9 +203,7 @@ function extractWebsiteData(html, pageUrl, responseMeta) {
     .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ");
 
   const title = stripTags(cleanHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "");
-  const description =
-    getAttr(cleanHtml.match(/<meta[^>]+name=["']description["'][^>]*>/i)?.[0] || "", "content") ||
-    getAttr(cleanHtml.match(/<meta[^>]+property=["']og:description["'][^>]*>/i)?.[0] || "", "content");
+  const description = extractMetaContent(cleanHtml, ["description", "og:description"]);
 
   const headings = [...cleanHtml.matchAll(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi)]
     .map((match) => stripTags(match[1]))
@@ -178,6 +236,7 @@ function extractWebsiteData(html, pageUrl, responseMeta) {
   const text = stripTags(bodyHtml).slice(0, 6000);
   const wordCount = text ? text.split(/\s+/).length : 0;
   const tables = extractTables(cleanHtml, pageUrl);
+  const resultTables = tables.length ? tables : extractLooseResultTable(cleanHtml, pageUrl);
   const sections = extractSections(cleanHtml);
 
   return {
@@ -190,7 +249,7 @@ function extractWebsiteData(html, pageUrl, responseMeta) {
     links,
     images,
     sections,
-    tables,
+    tables: resultTables,
     text,
     wordCount,
   };
