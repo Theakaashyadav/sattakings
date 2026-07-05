@@ -1,0 +1,16 @@
+{
+  "name": "sattakings",
+  "version": "1.0.0",
+  "description": "A Sattakings.com results page backed by a fixed source feed.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "node",
+    "sattakings",
+    "results",
+    "charts"
+  ],
+  "license": "MIT"
+}

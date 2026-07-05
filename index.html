@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sattakings.com</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #1f2933;
+        --muted: #66717f;
+        --line: #d9e0e7;
+        --page: #eef2f5;
+        --panel: #ffffff;
+        --green: #26c195;
+        --dark: #262626;
+        --red: #ff5252;
+        --gold: #ffc400;
+        --blue: #0879ff;
+        --link: #1769c2;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #eeeeee;
+        color: var(--ink);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      main {
+        width: min(760px, calc(100% - 18px));
+        margin: 0 auto;
+        padding: 12px 0 36px;
+      }
+
+      header {
+        margin-bottom: 18px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 5vw, 3.6rem);
+        line-height: 1;
+      }
+
+      header p,
+      .description {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      form {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin: 0 0 8px;
+      }
+
+      input,
+      button {
+        height: 46px;
+        border-radius: 8px;
+        font: inherit;
+      }
+
+      input {
+        min-width: 0;
+        border: 1px solid var(--line);
+        padding: 0 14px;
+        background: #fff;
+      }
+
+      button {
+        border: 0;
+        height: 32px;
+        padding: 0 12px;
+        background: #fbc503;
+        color: white;
+        cursor: pointer;
+        color: #d30000;
+        border: 1px solid #e7aa26;
+        font-weight: 700;
+        font-size: 0.82rem;
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.7;
+      }
+
+      .status {
+        min-height: 0;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 0.78rem;
+        text-align: center;
+      }
+
+      .layout {
+        display: block;
+      }
+
+      .panel,
+      aside {
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+      }
+
+      .panel {
+        padding: 0;
+      }
+
+      aside {
+        padding: 16px;
+        position: sticky;
+        top: 16px;
+      }
+
+      .page-head {
+        display: grid;
+        justify-items: center;
+        gap: 10px;
+        margin: 0 0 12px;
+        text-align: center;
+      }
+
+      .source-logo {
+        display: inline-flex;
+        width: max-content;
+        align-items: center;
+        gap: 8px;
+        color: #111827;
+        font-size: 1.15rem;
+        font-weight: 900;
+        line-height: 1;
+        margin-bottom: 120px;
+      }
+
+      .source-logo::before {
+        content: "";
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ffc400 0 45%, #ff5252 45% 70%, #26c195 70%);
+        box-shadow: inset 0 0 0 3px #111827;
+      }
+
+      .notice {
+        margin: 8px 0;
+        padding: 8px;
+        background: var(--red);
+        color: white;
+        text-align: center;
+        font-size: 0.76rem;
+        font-weight: 700;
+        line-height: 1.4;
+      }
+
+      .updated {
+        margin-bottom: 8px;
+        color: #339966;
+        font-size: 0.78rem;
+        text-align: center;
+      }
+
+      .section-title {
+        display: none;
+      }
+
+      .table-shell {
+        overflow-x: auto;
+        border: 1px solid #d5d5d5;
+        background: #fff;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .result-table {
+        min-width: 0;
+        table-layout: fixed;
+        font-size: 0.72rem;
+      }
+
+      .chart-table {
+        min-width: 0;
+        table-layout: fixed;
+        text-align: center;
+        font-size: 0.72rem;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid #ececec;
+        padding: 6px 8px;
+        vertical-align: middle;
+      }
+
+      th {
+        background: var(--dark);
+        color: white;
+        font-weight: 700;
+      }
+
+      .title-row th,
+      .title-row td {
+        background: var(--green);
+        color: white;
+        text-align: center;
+        font-weight: 800;
+        font-size: 0.78rem;
+      }
+
+      .section-row td,
+      .section-row th {
+        background: #f1f1f1;
+        color: var(--red);
+        text-align: left;
+        font-weight: 800;
+      }
+
+      .highlight-row td,
+      .highlight-row th {
+        background: var(--gold);
+      }
+
+      .option-row td,
+      .option-row th {
+        background: var(--blue);
+        color: white;
+        text-align: center;
+        font-weight: 800;
+      }
+
+      .game-col {
+        width: auto;
+      }
+
+      .number-col {
+        width: 58px;
+        text-align: center;
+        font-weight: 800;
+      }
+
+      .game-name {
+        font-weight: 800;
+      }
+
+      .game-time {
+        margin-top: 2px;
+        color: #666;
+        font-size: 0.62rem;
+      }
+
+      .record-link,
+      .reader-link {
+        display: inline-block;
+        margin-top: 2px;
+        color: var(--link);
+        font-size: 0.62rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .reader-link {
+        margin-top: 0;
+      }
+
+      .record-link:hover,
+      .reader-link:hover {
+        text-decoration: underline;
+      }
+
+      .empty {
+        color: var(--muted);
+      }
+
+      dl {
+        margin: 0;
+      }
+
+      dt {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      dd {
+        margin: 4px 0 0;
+        overflow-wrap: anywhere;
+      }
+
+      details {
+        margin-top: 18px;
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+      }
+
+      summary {
+        cursor: pointer;
+        font-weight: 800;
+      }
+
+      .raw-text {
+        margin-top: 10px;
+        max-height: 260px;
+        overflow: auto;
+        white-space: pre-wrap;
+        color: #3d4852;
+        line-height: 1.55;
+      }
+
+      ul {
+        margin: 8px 0 0;
+        padding-left: 20px;
+      }
+
+      li {
+        margin: 6px 0;
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 850px) {
+        main {
+          width: min(100% - 12px, 760px);
+          padding-top: 8px;
+        }
+
+        form,
+        .layout {
+          display: block;
+        }
+
+        aside {
+          position: static;
+        }
+
+        button {
+          width: auto;
+        }
+
+        .result-table,
+        .chart-table {
+          font-size: 0.66rem;
+        }
+
+        th,
+        td {
+          padding: 5px 6px;
+        }
+
+        .number-col {
+          width: 48px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <form id="reader-form">
+        <button id="submit-button" type="submit">Refresh</button>
+      </form>
+
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+
+      <div class="layout">
+        <section class="panel">
+          <div id="structured-output" class="empty">Loading results...</div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const form = document.querySelector("#reader-form");
+      const button = document.querySelector("#submit-button");
+      const statusBox = document.querySelector("#status");
+      const output = document.querySelector("#structured-output");
+
+      function setStatus(message, isError = false) {
+        statusBox.textContent = message;
+        statusBox.style.color = isError ? "#9a3412" : "var(--muted)";
+      }
+
+      function markReaderLink(anchor, url) {
+        anchor.href = url;
+        anchor.dataset.readerLink = url;
+        anchor.title = "Open this page";
+      }
+
+      function normalizeCell(cell) {
+        return {
+          tag: cell?.tag || "td",
+          text: cell?.text || "",
+          className: cell?.className || "",
+          colspan: cell?.colspan || 1,
+          links: cell?.links || [],
+        };
+      }
+
+      function normalizeRow(row) {
+        return {
+          className: row?.className || "",
+          id: row?.id || "",
+          cells: (row?.cells || []).map(normalizeCell),
+        };
+      }
+
+      function rowKind(row) {
+        const className = row.className.toLowerCase();
+        const firstText = (row.cells[0]?.text || "").trim().toLowerCase();
+
+        if (className.includes("board-title") || className.includes("chart-head")) return "title";
+        if (className.includes("board-head") || className.includes("date-name")) return "head";
+        if (className.includes("board-section") || ["live", "next", "rest"].includes(firstText)) return "section";
+        if (className.includes("option") || className.includes("space")) return "option";
+        if (className.includes("highlight")) return "highlight";
+        return "normal";
+      }
+
+      function isResultTable(table) {
+        const text = `${table.title} ${table.className}`.toLowerCase();
+        return text.includes("result") || text.includes("quick-result") || table.rows.some((row) => {
+          const cells = row.cells || [];
+          return cells.length === 3 && /record chart/i.test(cells[0]?.text || "");
+        });
+      }
+
+      function isChartTable(table) {
+        const text = `${table.title} ${table.className}`.toLowerCase();
+        return text.includes("chart") || table.rows.some((row) => {
+          const joined = (row.cells || []).map((cell) => cell.text).join(" ");
+          return /date\s+dswr\s+frbd\s+gzbd\s+gali/i.test(joined);
+        });
+      }
+
+      function splitGameCell(cell) {
+        const textValue = cell.text.replace(/\s+/g, " ").trim();
+        const recordText = cell.links[0]?.text || "Record Chart";
+        const withoutRecord = textValue.replace(/\s*Record Chart\s*/i, " ").trim();
+        const match = withoutRecord.match(/^(.*?)\s+(at\s+\d{1,2}:\d{2}\s*[AP]M)$/i);
+
+        return {
+          name: match ? match[1].trim() : withoutRecord,
+          time: match ? match[2].trim() : "",
+          link: cell.links[0] || null,
+          recordText,
+        };
+      }
+
+      function appendGameCell(tr, cell) {
+        const td = document.createElement("td");
+        const game = splitGameCell(cell);
+        const name = document.createElement("div");
+        const time = document.createElement("div");
+
+        td.className = "game-col";
+        name.className = "game-name";
+        name.textContent = game.name || cell.text;
+        td.appendChild(name);
+
+        if (game.time) {
+          time.className = "game-time";
+          time.textContent = game.time;
+          td.appendChild(time);
+        }
+
+        if (game.link) {
+          const link = document.createElement("a");
+          link.className = "record-link";
+          markReaderLink(link, game.link.href);
+          link.textContent = game.recordText;
+          td.appendChild(link);
+        }
+
+        tr.appendChild(td);
+      }
+
+      function appendSimpleCell(tr, cell, index, forceHeader = false) {
+        const element = document.createElement(forceHeader || cell.tag === "th" ? "th" : "td");
+        const firstLink = cell.links?.[0];
+
+        if (firstLink) {
+          const anchor = document.createElement("a");
+          anchor.className = "reader-link";
+          markReaderLink(anchor, firstLink.href);
+          anchor.textContent = cell.text || firstLink.text || firstLink.href;
+          element.appendChild(anchor);
+        } else {
+          element.textContent = cell.text;
+        }
+
+        if (cell.colspan > 1) element.colSpan = cell.colspan;
+        if (index > 0 && /^\d{1,2}$|^xx$|^--$/i.test(cell.text)) {
+          element.className = "number-col";
+        }
+        tr.appendChild(element);
+      }
+
+      function renderResultTable(table) {
+        const shell = document.createElement("div");
+        const rendered = document.createElement("table");
+        const tbody = document.createElement("tbody");
+
+        shell.className = "table-shell";
+        rendered.className = "result-table";
+
+        table.rows.map(normalizeRow).forEach((row) => {
+          const kind = rowKind(row);
+          const tr = document.createElement("tr");
+
+          if (kind === "title") tr.className = "title-row";
+          if (kind === "section") tr.className = "section-row";
+          if (kind === "highlight") tr.className = "highlight-row";
+
+          if (kind === "head") {
+            row.cells.forEach((cell, index) => {
+              const th = document.createElement("th");
+              th.textContent = cell.text;
+              th.className = index > 0 ? "number-col" : "game-col";
+              tr.appendChild(th);
+            });
+          } else if (kind === "section" || kind === "title") {
+            const cell = row.cells[0];
+            const td = document.createElement(kind === "title" ? "th" : "td");
+            td.colSpan = Math.max(cell?.colspan || 3, 3);
+            td.textContent = cell?.text || "";
+            tr.appendChild(td);
+          } else if (row.cells.length >= 3 && /record chart/i.test(row.cells[0].text)) {
+            appendGameCell(tr, row.cells[0]);
+            appendSimpleCell(tr, row.cells[1], 1);
+            appendSimpleCell(tr, row.cells[2], 2);
+          } else {
+            row.cells.forEach((cell, index) => appendSimpleCell(tr, cell, index));
+          }
+
+          tbody.appendChild(tr);
+        });
+
+        rendered.appendChild(tbody);
+        shell.appendChild(rendered);
+        return shell;
+      }
+
+      function renderChartTable(table) {
+        const shell = document.createElement("div");
+        const rendered = document.createElement("table");
+        const tbody = document.createElement("tbody");
+
+        shell.className = "table-shell";
+        rendered.className = "chart-table";
+
+        table.rows.map(normalizeRow).forEach((row) => {
+          const kind = rowKind(row);
+          const tr = document.createElement("tr");
+
+          if (kind === "title") tr.className = "title-row";
+          if (kind === "option") tr.className = "option-row";
+
+          row.cells.forEach((cell, index) => appendSimpleCell(tr, cell, index, kind === "head"));
+          tbody.appendChild(tr);
+        });
+
+        rendered.appendChild(tbody);
+        shell.appendChild(rendered);
+        return shell;
+      }
+
+      function extractUpdated(textValue) {
+        return textValue.match(/Updated:\s*[^.]+IST\./i)?.[0] || "";
+      }
+
+      function renderStructuredOutput(data) {
+        const tables = data.tables || [];
+        const resultTables = tables.filter(isResultTable);
+        const chartTables = tables.filter((table) => isChartTable(table) && !isResultTable(table));
+        const disclaimer = (data.sections || []).find((section) => /disclaimer/i.test(section.text));
+        const updated = extractUpdated(data.text || "");
+
+        output.innerHTML = "";
+        output.className = "";
+
+        const head = document.createElement("div");
+        const title = document.createElement("h2");
+        const description = document.createElement("p");
+        const brand = document.createElement("div");
+
+        head.className = "page-head";
+        brand.className = "source-logo";
+        brand.textContent = "Sattakings.com";
+        title.textContent = "Sattakings.com";
+        description.className = "description";
+        description.textContent = data.description || "No page description found.";
+        head.append(brand, title, description);
+        output.appendChild(head);
+
+        if (disclaimer) {
+          const notice = document.createElement("div");
+          notice.className = "notice";
+          notice.textContent = disclaimer.text;
+          output.appendChild(notice);
+        }
+
+        if (updated) {
+          const updatedBox = document.createElement("div");
+          updatedBox.className = "updated";
+          updatedBox.textContent = updated;
+          output.appendChild(updatedBox);
+        }
+
+        if (resultTables.length) {
+          const heading = document.createElement("h3");
+          heading.className = "section-title";
+          heading.textContent = "Result Board";
+          output.appendChild(heading);
+          resultTables.forEach((table) => output.appendChild(renderResultTable(table)));
+        }
+
+        if (chartTables.length) {
+          const heading = document.createElement("h3");
+          heading.className = "section-title";
+          heading.textContent = "Monthly Chart";
+          output.appendChild(heading);
+          chartTables.forEach((table) => output.appendChild(renderChartTable(table)));
+        }
+
+        if (!resultTables.length && !chartTables.length) {
+          const empty = document.createElement("p");
+          empty.className = "empty";
+          empty.textContent = "No results found.";
+          output.appendChild(empty);
+        }
+      }
+
+      function renderData(data) {
+        renderStructuredOutput(data);
+      }
+
+      async function loadWebsite(url = "", options = {}) {
+        button.disabled = true;
+        setStatus("Loading...");
+
+        try {
+          const payload = url ? { url } : {};
+          const response = await fetch("/api/read", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Unable to load data.");
+          }
+
+          renderData(data);
+          if (url && options.updateHistory !== false) {
+            const stateUrl = new URL(window.location.href);
+            stateUrl.searchParams.set("url", data.url);
+            window.history.pushState({ url: data.url }, "", stateUrl);
+          }
+          setStatus("");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch (error) {
+          setStatus(error.message, true);
+        } finally {
+          button.disabled = false;
+        }
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        loadWebsite("", { updateHistory: false });
+      });
+
+      document.addEventListener("click", (event) => {
+        const anchor = event.target.closest("a[data-reader-link]");
+
+        if (!anchor || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          return;
+        }
+
+        event.preventDefault();
+        loadWebsite(anchor.dataset.readerLink);
+      });
+
+      window.addEventListener("popstate", (event) => {
+        const url = event.state?.url || new URL(window.location.href).searchParams.get("url");
+        if (url) {
+          loadWebsite(url, { updateHistory: false });
+        }
+      });
+
+      const initialUrl = new URL(window.location.href).searchParams.get("url");
+      if (initialUrl) {
+        loadWebsite(initialUrl, { updateHistory: false });
+      } else {
+        loadWebsite("", { updateHistory: false });
+      }
+    </script>
+  </body>
+</html>
