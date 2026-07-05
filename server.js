@@ -6,6 +6,15 @@ const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
 const SOURCE_URL = "https://satta-king-fast.com/";
 const SOURCE_ORIGIN = new URL(SOURCE_URL).origin;
+const READER_URL = "https://r.jina.ai/http://r.jina.ai/http://";
+
+const FETCH_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.7",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Cache-Control": "no-cache",
+};
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, { "Content-Type": "application/json" });
@@ -35,6 +44,14 @@ function decodeHtml(value = "") {
 
 function stripTags(html = "") {
   return decodeHtml(html.replace(/<[^>]*>/g, " "))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stripMarkdown(value = "") {
+  return decodeHtml(value)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+    .replace(/[#*_`>]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -172,6 +189,163 @@ function extractLooseResultTable(cleanHtml, pageUrl) {
   ];
 }
 
+function extractMarkdownLinks(value = "") {
+  return [...value.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)]
+    .map((match) => ({
+      text: stripMarkdown(match[1]),
+      href: absolutize(SOURCE_URL, match[2]),
+    }))
+    .filter((link) => link.href);
+}
+
+function extractMarkdownData(markdown, pageUrl, responseMeta) {
+  const title = stripMarkdown(markdown.match(/^Title:\s*(.+)$/m)?.[1] || "");
+  const content = markdown.split("Markdown Content:")[1] || markdown;
+  const description =
+    stripMarkdown(content.match(/\*\*DISCLAIMER:\*\*\s*([\s\S]*?)(?:\n\n|Updated:)/i)?.[1] || "") ||
+    title;
+  const updated = stripMarkdown(content.match(/Updated:\s*.+?IST\./i)?.[0] || "");
+  const rows = [];
+
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("|") || /^(\|\s*-+\s*)+\|?$/.test(trimmed)) continue;
+
+    const parts = trimmed
+      .replace(/^\|/, "")
+      .replace(/\|$/, "")
+      .split("|")
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (!parts.length) continue;
+
+    const firstText = stripMarkdown(parts[0]);
+    let className = "";
+
+    if (/Satta King Fast Results/i.test(firstText)) className = "board-title";
+    else if (/Regional Offline Draw Results/i.test(firstText)) className = "board-head";
+    else if (/^(LIVE|NEXT|REST)$/i.test(firstText)) className = "board-section";
+    else if (/Record Chart/i.test(firstText)) className = "game-result";
+
+    const cells = parts.map((part, index) => ({
+      tag: className === "board-title" || className === "board-head" ? "th" : "td",
+      text: stripMarkdown(part),
+      className: index === 0 ? "game-details" : index === 1 ? "yesterday-number" : "today-number",
+      colspan: parts.length === 1 ? 3 : 1,
+      links: extractMarkdownLinks(part),
+    }));
+
+    rows.push({ className, id: "", cells });
+  }
+
+  const tableRows = rows.filter((row) => row.className || row.cells.length >= 3);
+  const text = stripMarkdown(content).slice(0, 6000);
+
+  return {
+    url: pageUrl,
+    status: responseMeta.status,
+    contentType: responseMeta.contentType,
+    title,
+    description,
+    headings: rows.map((row) => row.cells[0]?.text).filter(Boolean).slice(0, 20),
+    links: uniqueBy(
+      [...content.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map((match) => ({
+        text: stripMarkdown(match[1]),
+        href: absolutize(pageUrl, match[2]),
+      })),
+      (link) => link.href
+    ).slice(0, 25),
+    images: [],
+    sections: description
+      ? [
+          {
+            tag: "div",
+            id: "",
+            className: "disclaimer",
+            label: "disclaimer",
+            text: description,
+          },
+        ]
+      : [],
+    tables: tableRows.length
+      ? [
+          {
+            title: tableRows.find((row) => /board-title/i.test(row.className))?.cells[0]?.text || title,
+            className: "quick-result-board",
+            rows: tableRows.slice(0, 180),
+            rowCount: tableRows.length,
+          },
+        ]
+      : [],
+    text: updated ? `${updated} ${text}` : text,
+    wordCount: text ? text.split(/\s+/).length : 0,
+  };
+}
+
+function hasUsableResults(data) {
+  return Boolean(
+    data?.description &&
+      data?.tables?.some((table) => {
+        const label = `${table.title || ""} ${table.className || ""}`;
+        const hasResultLabel = /result|quick-result/i.test(label);
+        const hasGameRows = table.rows?.some((row) =>
+          row.cells?.some((cell) => /Record Chart/i.test(cell.text || ""))
+        );
+
+        return table.rows?.length && (hasResultLabel || hasGameRows);
+      })
+  );
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchDirectData(target) {
+  const response = await fetchWithTimeout(target.href, {
+    headers: FETCH_HEADERS,
+    redirect: "follow",
+  });
+
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")) {
+    throw new Error(`This URL returned ${contentType || "an unsupported content type"}.`);
+  }
+
+  const html = await response.text();
+  return extractWebsiteData(html, response.url, {
+    status: response.status,
+    contentType,
+  });
+}
+
+async function fetchReaderData(target) {
+  const readerTarget = `${READER_URL}${target.href}`;
+  const response = await fetchWithTimeout(readerTarget, {
+    headers: FETCH_HEADERS,
+    redirect: "follow",
+  });
+  const contentType = response.headers.get("content-type") || "";
+  const markdown = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Reader fallback failed with status ${response.status}.`);
+  }
+
+  return extractMarkdownData(markdown, target.href, {
+    status: response.status,
+    contentType,
+  });
+}
+
 function extractSections(cleanHtml) {
   return [...cleanHtml.matchAll(/<(header|nav|main|section|article|aside|footer|div)\b([^>]*)>([\s\S]*?)<\/\1>/gi)]
     .map((match) => {
@@ -267,10 +441,12 @@ async function readRequestBody(req) {
 }
 
 async function handleRead(req, res) {
+  let target;
+
   try {
     const body = await readRequestBody(req);
     const { url } = JSON.parse(body || "{}");
-    const target = new URL(url || SOURCE_URL, SOURCE_URL);
+    target = new URL(url || SOURCE_URL, SOURCE_URL);
 
     if (!["http:", "https:"].includes(target.protocol)) {
       return sendJson(res, 400, { error: "Only http and https URLs are supported." });
@@ -280,28 +456,20 @@ async function handleRead(req, res) {
       return sendJson(res, 400, { error: `Only ${SOURCE_ORIGIN} pages can be loaded.` });
     }
 
-    const response = await fetch(target.href, {
-      headers: {
-        "User-Agent": "Sattakings/1.0",
-        Accept: "text/html,application/xhtml+xml",
-      },
-      redirect: "follow",
-    });
+    let data = await fetchDirectData(target);
 
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")) {
-      return sendJson(res, 415, { error: `This URL returned ${contentType || "an unsupported content type"}.` });
+    if (!hasUsableResults(data)) {
+      data = await fetchReaderData(target);
     }
-
-    const html = await response.text();
-    const data = extractWebsiteData(html, response.url, {
-      status: response.status,
-      contentType,
-    });
 
     sendJson(res, 200, data);
   } catch (error) {
-    sendJson(res, 400, { error: error.message || "Could not read the website." });
+    try {
+      const data = await fetchReaderData(target || new URL(SOURCE_URL));
+      sendJson(res, 200, data);
+    } catch {
+      sendJson(res, 400, { error: error.message || "Could not read the website." });
+    }
   }
 }
 
